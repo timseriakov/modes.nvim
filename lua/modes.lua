@@ -2,14 +2,10 @@ local utils = require('modes.utils')
 
 local M = {}
 local config = {}
+
 local default_config = {
 	colors = {},
-	line_opacity = {
-		copy = 0.15,
-		delete = 0.15,
-		insert = 0.15,
-		visual = 0.15,
-	},
+	line_opacity = 0.15,
 	set_cursor = true,
 	set_cursorline = true,
 	set_number = true,
@@ -26,6 +22,7 @@ local default_config = {
 		'!minifiles',
 	},
 }
+
 local winhighlight = {
 	default = {
 		CursorLine = 'CursorLine',
@@ -60,16 +57,20 @@ local winhighlight = {
 		Visual = 'ModesVisualVisual',
 	},
 }
+
 local colors = {}
 local blended_colors = {}
+
 local in_ignored_buffer = function()
 	if type(config.ignore) == 'function' then
 		return config.ignore()
 	end
 	return not vim.tbl_contains(config.ignore, '!' .. vim.bo.filetype)
-		 and (vim.api.nvim_get_option_value('buftype', { buf = 0 }) ~= '' -- not a normal buffer
-			 or not vim.api.nvim_get_option_value('buflisted', { buf = 0 }) -- unlisted buffer
-			 or vim.tbl_contains(config.ignore, vim.bo.filetype))
+		and (
+			vim.api.nvim_get_option_value('buftype', { buf = 0 }) ~= ''
+			or not vim.api.nvim_get_option_value('buflisted', { buf = 0 })
+			or vim.tbl_contains(config.ignore, vim.bo.filetype)
+		)
 end
 
 M.reset = function()
@@ -77,17 +78,15 @@ M.reset = function()
 	vim.cmd.redraw()
 end
 
----Update highlights
----@param scene 'default'|'insert'|'visual'|'copy'|'delete'|
 M.highlight = function(scene)
 	if in_ignored_buffer() then
 		return
 	end
 
 	local winhl_map = {}
-	local prev_value = vim.api.nvim_get_option_value('winhighlight', { win = 0 })
+	local prev_value =
+		vim.api.nvim_get_option_value('winhighlight', { win = 0 })
 
-	-- mapping the old value of 'winhighlight'
 	if prev_value ~= '' then
 		for _, winhl in ipairs(vim.split(prev_value, ',')) do
 			local pair = vim.split(winhl, ':')
@@ -95,7 +94,6 @@ M.highlight = function(scene)
 		end
 	end
 
-	-- overrides 'builtin':'hl' if the current scene has a mapping for it
 	for builtin, hl in pairs(winhighlight[scene]) do
 		winhl_map[builtin] = hl
 	end
@@ -112,7 +110,11 @@ M.highlight = function(scene)
 	for builtin, hl in pairs(winhl_map) do
 		table.insert(new_value, ('%s:%s'):format(builtin, hl))
 	end
-	vim.api.nvim_set_option_value('winhighlight', table.concat(new_value, ','), { win = 0 })
+	vim.api.nvim_set_option_value(
+		'winhighlight',
+		table.concat(new_value, ','),
+		{ win = 0 }
+	)
 
 	if vim.api.nvim_get_option_value('showmode', { scope = 'global' }) then
 		if scene == 'visual' then
@@ -147,26 +149,14 @@ M.define = function()
 		insert = config.colors.insert or utils.get_bg('ModesInsert', '#78ccc5'),
 		visual = config.colors.visual or utils.get_bg('ModesVisual', '#9745be'),
 	}
+
 	blended_colors = {
-		copy = utils.blend(colors.copy, colors.bg, config.line_opacity.copy),
-		delete = utils.blend(
-			colors.delete,
-			colors.bg,
-			config.line_opacity.delete
-		),
-		insert = utils.blend(
-			colors.insert,
-			colors.bg,
-			config.line_opacity.insert
-		),
-		visual = utils.blend(
-			colors.visual,
-			colors.bg,
-			config.line_opacity.visual
-		),
+		copy = utils.blend(colors.copy, colors.bg, config.line_opacity),
+		delete = utils.blend(colors.delete, colors.bg, config.line_opacity),
+		insert = utils.blend(colors.insert, colors.bg, config.line_opacity),
+		visual = utils.blend(colors.visual, colors.bg, config.line_opacity),
 	}
 
-	---Create highlight groups
 	if colors.copy ~= '' then
 		vim.cmd('hi ModesCopy guibg=' .. colors.copy)
 	end
@@ -195,11 +185,15 @@ M.define = function()
 	for _, mode in ipairs({ 'Copy', 'Delete', 'Insert', 'Visual' }) do
 		local mode_fg = colors[mode:lower()]
 		if mode_fg ~= '' then
-			local mode_bg = (mode:lower() == 'visual') and 'NONE' or blended_colors[mode:lower()]
-			utils.set_hl(('Modes%sCursorLine'):format(mode), { bg = mode_bg })
-			utils.set_hl(('Modes%sCursorLineNr'):format(mode), { fg = mode_fg, bg = mode_bg })
-			utils.set_hl(('Modes%sCursorLineSign'):format(mode), { bg = mode_bg })
-			utils.set_hl(('Modes%sCursorLineFold'):format(mode), { bg = mode_bg })
+			local mode_bg = (mode:lower() == 'visual') and 'NONE'
+				or blended_colors[mode:lower()]
+			utils.set_hl('Modes' .. mode .. 'CursorLine', { bg = mode_bg })
+			utils.set_hl(
+				'Modes' .. mode .. 'CursorLineNr',
+				{ fg = mode_fg, bg = mode_bg }
+			)
+			utils.set_hl('Modes' .. mode .. 'CursorLineSign', { bg = mode_bg })
+			utils.set_hl('Modes' .. mode .. 'CursorLineFold', { bg = mode_bg })
 		end
 	end
 
@@ -224,7 +218,6 @@ M.enable_managed_ui = function()
 		if config.set_cursorline then
 			vim.o.cursorline = true
 		end
-
 		if config.set_cursor then
 			vim.opt.guicursor:append('v-sm:ModesVisual')
 			vim.opt.guicursor:append('i-ve:ModesInsert')
@@ -237,13 +230,10 @@ M.disable_managed_ui = function()
 	if config.set_cursorline then
 		vim.o.cursorline = false
 	end
-
 	if config.set_cursor then
 		vim.opt.guicursor:remove('v-sm:ModesVisual')
 		vim.opt.guicursor:remove('i-ve:ModesInsert')
 		vim.opt.guicursor:remove('r-o:ModesOperator')
-
-		-- ensure cursor reset (see https://github.com/neovim/neovim/issues/21018)
 		local cursor = vim.o.guicursor
 		vim.o.guicursor = 'a:'
 		vim.cmd.redrawstatus()
@@ -252,37 +242,7 @@ M.disable_managed_ui = function()
 end
 
 M.setup = function(opts)
-	opts = vim.tbl_extend('keep', opts or {}, default_config)
-	if opts.focus_only then
-		vim.notify(
-			'modes.nvim – `focus_only` has been removed and is now the default behaviour',
-			vim.log.levels.INFO,
-			{}
-		)
-	end
-	if opts.ignore_filetypes then
-		if not opts.ignore then
-			opts.ignore = opts.ignore_filetypes
-		end
-		opts.ignore_filetypes = nil
-		vim.notify(
-			'modes.nvim - `ignore_filetypes` has been replaced by `ignore`',
-			vim.log.levels.INFO,
-			{}
-		)
-	end
-
-	config = vim.tbl_deep_extend('force', default_config, opts)
-
-	if type(config.line_opacity) == 'number' then
-		config.line_opacity = {
-			copy = config.line_opacity,
-			delete = config.line_opacity,
-			insert = config.line_opacity,
-			visual = config.line_opacity,
-		}
-	end
-
+	config = vim.tbl_deep_extend('force', default_config, opts or {})
 	M.define()
 
 	vim.on_key(function(key)
@@ -290,21 +250,32 @@ M.setup = function(opts)
 		if mode == 'no' then
 			vim.schedule(M.reset)
 		elseif mode == 'n' then
-			if key == 'y' then
-				M.highlight('copy')
-			elseif key == 'd' then
+			if
+				key == 'x'
+				or key == 'X'
+				or key == 'c'
+				or key == 'C'
+				or key == 'd'
+				or key == 'D'
+			then
 				M.highlight('delete')
+			elseif key == 'm' or key == 'M' or key == 'y' or key == 'Y' then
+				M.highlight('copy')
+			end
+		elseif mode == 'v' then
+			if key == 'x' or key == 'd' then
+				M.highlight('delete')
+			elseif key == 'm' or key == 'y' then
+				M.highlight('copy')
 			end
 		end
 	end)
 
-	---Set highlights when colorscheme changes
 	vim.api.nvim_create_autocmd('ColorScheme', {
 		pattern = '*',
 		callback = M.define,
 	})
 
-	---Set insert highlight
 	vim.api.nvim_create_autocmd('InsertEnter', {
 		pattern = '*',
 		callback = function()
@@ -312,7 +283,6 @@ M.setup = function(opts)
 		end,
 	})
 
-	---Set visual highlight
 	vim.api.nvim_create_autocmd('ModeChanged', {
 		pattern = '*:[vV\x16]',
 		callback = function()
@@ -320,24 +290,20 @@ M.setup = function(opts)
 		end,
 	})
 
-	---Reset visual highlight
 	vim.api.nvim_create_autocmd('ModeChanged', {
 		pattern = '[vV\x16]:n',
 		callback = M.reset,
 	})
 
-	---Reset insert highlight (unless entering visual mode)
 	vim.api.nvim_create_autocmd('InsertLeave', {
 		pattern = '*',
 		callback = function()
-			local mode = vim.api.nvim_get_mode().mode
-			if mode ~= 'v' then
+			if vim.api.nvim_get_mode().mode ~= 'v' then
 				M.reset()
 			end
 		end,
 	})
 
-	---Reset other highlights
 	vim.api.nvim_create_autocmd(
 		{ 'CmdlineLeave', 'TextYankPost', 'WinLeave', 'FocusLost' },
 		{
@@ -346,7 +312,6 @@ M.setup = function(opts)
 		}
 	)
 
-	---Restore insert highlight
 	vim.api.nvim_create_autocmd({ 'WinEnter', 'FocusGained' }, {
 		pattern = '*',
 		callback = function()
@@ -357,7 +322,6 @@ M.setup = function(opts)
 		end,
 	})
 
-	---Enable managed UI for current window
 	vim.api.nvim_create_autocmd({ 'WinEnter', 'FocusGained' }, {
 		pattern = '*',
 		callback = function()
@@ -365,7 +329,6 @@ M.setup = function(opts)
 		end,
 	})
 
-	---Disable managed UI
 	vim.api.nvim_create_autocmd({ 'WinLeave', 'FocusLost' }, {
 		pattern = '*',
 		callback = M.disable_managed_ui,

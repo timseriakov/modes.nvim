@@ -1,4 +1,4 @@
-# modes.nvim
+# modes.nvim (fork for personal purposes)
 
 > Prismatic line decorations for the adventurous vim user
 
