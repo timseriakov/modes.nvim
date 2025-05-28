@@ -256,10 +256,12 @@ M.setup = function(opts)
 				M.reset()
 				return
 			end
-			if op == 'd' or op == 'c' or op == 'x' then
-				M.highlight('delete')
-			elseif op == 'y' or op == 'm' then
-				M.highlight('copy')
+			if mode:match('^no') or mode == 'n' then
+				if op == 'd' or op == 'c' or op == 'x' then
+					M.highlight('delete')
+				elseif op == 'y' or op == 'm' then
+					M.highlight('copy')
+				end
 			end
 		end,
 	})
