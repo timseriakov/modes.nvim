@@ -245,31 +245,17 @@ M.setup = function(opts)
 	config = vim.tbl_deep_extend('force', default_config, opts or {})
 	M.define()
 
-	vim.on_key(function(key)
-		local mode = vim.api.nvim_get_mode().mode
-		if mode == 'no' then
-			vim.schedule(M.reset)
-		elseif mode == 'n' then
-			if
-				key == 'x'
-				or key == 'X'
-				or key == 'c'
-				or key == 'C'
-				or key == 'd'
-				or key == 'D'
-			then
+	vim.api.nvim_create_autocmd('ModeChanged', {
+		pattern = '*',
+		callback = function()
+			local op = vim.v.operator
+			if op == 'd' or op == 'c' or op == 'x' then
 				M.highlight('delete')
-			elseif key == 'm' or key == 'M' or key == 'y' or key == 'Y' then
+			elseif op == 'y' or op == 'm' then
 				M.highlight('copy')
 			end
-		elseif mode == 'v' then
-			if key == 'x' or key == 'd' then
-				M.highlight('delete')
-			elseif key == 'm' or key == 'y' then
-				M.highlight('copy')
-			end
-		end
-	end)
+		end,
+	})
 
 	vim.api.nvim_create_autocmd('ColorScheme', {
 		pattern = '*',
@@ -301,6 +287,13 @@ M.setup = function(opts)
 			if vim.api.nvim_get_mode().mode ~= 'v' then
 				M.reset()
 			end
+		end,
+	})
+
+	vim.api.nvim_create_autocmd('ModeChanged', {
+		pattern = 'o:n',
+		callback = function()
+			M.reset()
 		end,
 	})
 
