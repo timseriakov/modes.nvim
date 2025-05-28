@@ -1,3 +1,5 @@
+-- lua/modes.lua
+
 local utils = require('modes.utils')
 
 local M = {}
@@ -253,6 +255,8 @@ M.setup = function(opts)
 				M.highlight('delete')
 			elseif op == 'y' or op == 'm' then
 				M.highlight('copy')
+			else
+				M.reset()
 			end
 		end,
 	})
@@ -292,6 +296,13 @@ M.setup = function(opts)
 
 	vim.api.nvim_create_autocmd('ModeChanged', {
 		pattern = 'o:n',
+		callback = function()
+			M.reset()
+		end,
+	})
+
+	vim.api.nvim_create_autocmd('ModeChanged', {
+		pattern = 'n:o',
 		callback = function()
 			M.reset()
 		end,
