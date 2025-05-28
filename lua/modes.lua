@@ -251,6 +251,11 @@ M.setup = function(opts)
 		pattern = '*',
 		callback = function()
 			local op = vim.v.operator
+			local mode = vim.api.nvim_get_mode().mode
+			if mode == 'i' then
+				M.reset()
+				return
+			end
 			if op == 'd' or op == 'c' or op == 'x' then
 				M.highlight('delete')
 			elseif op == 'y' or op == 'm' then
