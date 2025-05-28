@@ -255,10 +255,13 @@ M.setup = function(opts)
 				M.highlight('delete')
 			elseif op == 'y' or op == 'm' then
 				M.highlight('copy')
-			else
-				M.reset()
 			end
 		end,
+	})
+
+	vim.api.nvim_create_autocmd('ModeChanged', {
+		pattern = 'no:n',
+		callback = M.reset,
 	})
 
 	vim.api.nvim_create_autocmd('ColorScheme', {
@@ -291,20 +294,6 @@ M.setup = function(opts)
 			if vim.api.nvim_get_mode().mode ~= 'v' then
 				M.reset()
 			end
-		end,
-	})
-
-	vim.api.nvim_create_autocmd('ModeChanged', {
-		pattern = 'o:n',
-		callback = function()
-			M.reset()
-		end,
-	})
-
-	vim.api.nvim_create_autocmd('ModeChanged', {
-		pattern = 'n:o',
-		callback = function()
-			M.reset()
 		end,
 	})
 
